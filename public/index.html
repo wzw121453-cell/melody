@@ -23,7 +23,7 @@
       <audio id="audio" controls playsinline preload="metadata"></audio>
     </section>
     <section id="transcriptCard" class="card transcript-card hidden">
-      <div class="section-head"><div><small>EPISODE NOTES</small><h3>播客文稿</h3></div><button id="toggleTranscript">展开全文</button></div>
+      <div class="section-head"><div><small>SHOW NOTES</small><h3>节目简介</h3></div><button id="toggleTranscript">展开全文</button></div>
       <div id="transcript" class="transcript collapsed"></div>
     </section>
     <section class="card room-card">
@@ -52,5 +52,6 @@
       <div class="input-row"><input id="chatInput" maxlength="80" placeholder="发条弹幕…"><button id="chatSend">发送</button></div>
     </section>
   </main>
+  <div id="idModal" class="id-modal hidden"><div class="id-dialog"><div class="id-mark">◉</div><small>WELCOME TO THE ROOM</small><h2>先设置你的房间 ID</h2><p>这个名字会显示在成员列表、聊天和弹幕中。</p><input id="enterName" maxlength="12" placeholder="例如：小王同学" autofocus><button id="confirmName" class="primary">保存并进入</button></div></div>
   <div id="toast"></div><script src="/app.js"></script>
 </body></html>

@@ -19,7 +19,12 @@
     <section class="card room-card">
       <div class="room-line"><div><small>房间</small><strong id="roomCode">未加入</strong></div><span id="status">尚未连接</span></div>
       <button id="create" class="primary">创建房间</button>
-      <button id="share" class="secondary" disabled>邀请朋友加入</button>
+      <div id="shareBox" class="share-box hidden">
+        <label>邀请链接</label>
+        <div class="input-row"><input id="inviteUrl" readonly><button id="copy">复制</button></div>
+        <p class="wechat-tip">微信内也可以点右上角「···」→ 发送给朋友</p>
+      </div>
+      <button id="share" class="secondary" disabled>复制邀请链接</button>
       <p class="hint center">朋友点开链接即可加入，无需安装 App</p>
     </section>
   </main>

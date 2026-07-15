@@ -7,6 +7,11 @@
 <body>
   <main>
     <header><span class="logo">◉</span><div><h1>小宇宙一起听</h1><p>隔着距离，也在同一秒听见</p></div></header>
+    <section class="card profile-card">
+      <div class="profile-avatar" id="myAvatar">我</div>
+      <div class="profile-main"><label>我的房间 ID</label><input id="myName" maxlength="12" placeholder="例如：小王同学"></div>
+      <button id="saveName">保存</button>
+    </section>
     <section id="setup" class="card">
       <label>粘贴小宇宙单集分享链接</label>
       <div class="input-row"><input id="episodeUrl" inputmode="url" placeholder="https://www.xiaoyuzhoufm.com/episode/…"><button id="load">载入</button></div>
@@ -37,7 +42,9 @@
     </section>
     <section id="chatCard" class="card hidden">
       <div class="chat-head"><strong>一起聊</strong><span id="memberCount">1 人在线</span></div>
+      <div id="members" class="members"></div>
       <div id="messages" class="messages"></div>
+      <div class="quick-replies"><button>😂</button><button>👍</button><button>❤️</button><button>好听！</button><button>同感</button></div>
       <div class="input-row"><input id="chatInput" maxlength="80" placeholder="发条弹幕…"><button id="chatSend">发送</button></div>
     </section>
   </main>

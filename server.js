@@ -82,22 +82,25 @@ wss.on("connection", (socket, req) => {
   if (!room || !rooms.has(room)) return socket.close(4004, "房间不存在或已过期");
   const data=rooms.get(room), token=url.searchParams.get("token")||"", password=url.searchParams.get("password")||"";
   const isHost=token&&token===data.hostToken;
+  const userId=(url.searchParams.get("client")||"").slice(0,80), name=(url.searchParams.get("name")||"房友").trim().slice(0,12)||"房友";
   if(!isHost&&data.passwordHash&&hash(password)!==data.passwordHash) return socket.close(4003,"房间密码错误");
   const members = data.members;
+  socket.user={userId,name,isHost};
   members.add(socket);
-  socket.send(JSON.stringify({type:"welcome",isHost,memberCount:members.size,chats:data.chats}));
-  for(const member of members) if(member.readyState===WebSocket.OPEN) member.send(JSON.stringify({type:"members",memberCount:members.size}));
+  const presence=()=>[...members].map(member=>member.user);
+  socket.send(JSON.stringify({type:"welcome",isHost,memberCount:members.size,members:presence(),chats:data.chats}));
+  for(const member of members) if(member.readyState===WebSocket.OPEN) member.send(JSON.stringify({type:"members",memberCount:members.size,members:presence()}));
   socket.on("message", raw => {
     if (raw.length > 8192) return;
     let message; try{message=JSON.parse(raw.toString())}catch{return}
     if(message.type==="chat"){
       const text=String(message.text||"").trim().slice(0,80); if(!text)return;
-      message={type:"chat",text,sender:String(message.sender||"").slice(0,80),name:String(message.name||"房友").slice(0,12),sentAt:Date.now()};
+      message={type:"chat",text,sender:userId,name,isHost,sentAt:Date.now()};
       data.chats.push(message); if(data.chats.length>50)data.chats.shift();
     }
     const encoded=JSON.stringify(message); for (const member of members) if (member.readyState === WebSocket.OPEN) member.send(encoded);
   });
-  socket.on("close", () => { members.delete(socket); for(const member of members) if(member.readyState===WebSocket.OPEN) member.send(JSON.stringify({type:"members",memberCount:members.size})); });
+  socket.on("close", () => { members.delete(socket); for(const member of members) if(member.readyState===WebSocket.OPEN) member.send(JSON.stringify({type:"members",memberCount:members.size,members:presence()})); });
 });
 
 setInterval(()=>{const now=Date.now();for(const [id,data] of rooms)if(!data.members.size&&now-data.createdAt>6*60*60*1000)rooms.delete(id)},30*60*1000).unref();

@@ -29,6 +29,12 @@ function meta(html, property) {
   return "";
 }
 
+function podcastSchema(html){
+  const scripts=[...html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
+  for(const match of scripts){try{const data=JSON.parse(decode(match[1]));if(data["@type"]==="PodcastEpisode")return data}catch{}}
+  return {};
+}
+
 async function episodeInfo(rawUrl) {
   let url;
   try { url = new URL(rawUrl); } catch { throw new Error("分享链接格式不正确"); }
@@ -36,9 +42,10 @@ async function episodeInfo(rawUrl) {
   const response = await fetch(url, { redirect: "follow", headers: { "user-agent": "Mozilla/5.0 ListenTogether/1.0" } });
   if (!response.ok) throw new Error("无法读取这个分享链接");
   const html = await response.text();
-  const audio = meta(html, "og:audio") || html.match(/"contentUrl"\s*:\s*"([^"]+)"/)?.[1]?.replace(/\\u0026/g, "&");
+  const schema=podcastSchema(html);
+  const audio = meta(html, "og:audio") || schema.associatedMedia?.contentUrl || html.match(/"contentUrl"\s*:\s*"([^"]+)"/)?.[1]?.replace(/\\u0026/g, "&");
   if (!audio) throw new Error("该单集没有可公开播放的音频，付费内容暂不支持");
-  return { title: meta(html, "og:title") || "小宇宙播客", podcast: meta(html, "og:description").split("\n")[0].replace(/^听《|》上小宇宙.*$/g, ""), image: meta(html, "og:image"), audio, source: response.url };
+  return { title: meta(html, "og:title") || "小宇宙播客", podcast:schema.partOfSeries?.name||meta(html, "og:description").split("\n")[0].replace(/^听《|》上小宇宙.*$/g, ""), image: meta(html, "og:image"), audio, description:schema.description||"", source: response.url };
 }
 
 const server = http.createServer(async (req, res) => {

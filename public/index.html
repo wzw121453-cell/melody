@@ -13,12 +13,20 @@
       <p class="hint">在小宇宙 App 打开单集 → 分享 → 复制链接</p>
     </section>
     <section id="playerCard" class="card player-card hidden">
+      <div id="danmaku" class="danmaku"></div>
       <img id="cover" alt="播客封面"><div class="meta"><small id="podcast">小宇宙播客</small><h2 id="title">等待载入单集</h2></div>
       <audio id="audio" controls playsinline preload="metadata"></audio>
     </section>
     <section class="card room-card">
       <div class="room-line"><div><small>房间</small><strong id="roomCode">未加入</strong></div><span id="status">尚未连接</span></div>
-      <button id="create" class="primary">创建房间</button>
+      <div id="hostSetup">
+        <label>房间密码（可选）</label><input id="roomPassword" maxlength="24" placeholder="设置后朋友需输入密码">
+        <button id="create" class="primary">创建房间</button>
+      </div>
+      <div id="joinSetup" class="hidden">
+        <label>房间密码</label><input id="joinPassword" maxlength="24" placeholder="向房主询问密码">
+        <button id="join" class="primary">加入房间</button>
+      </div>
       <div id="shareBox" class="share-box hidden">
         <label>邀请链接</label>
         <div class="input-row"><input id="inviteUrl" readonly><button id="copy">复制</button></div>
@@ -26,6 +34,11 @@
       </div>
       <button id="share" class="secondary" disabled>复制邀请链接</button>
       <p class="hint center">朋友点开链接即可加入，无需安装 App</p>
+    </section>
+    <section id="chatCard" class="card hidden">
+      <div class="chat-head"><strong>一起聊</strong><span id="memberCount">1 人在线</span></div>
+      <div id="messages" class="messages"></div>
+      <div class="input-row"><input id="chatInput" maxlength="80" placeholder="发条弹幕…"><button id="chatSend">发送</button></div>
     </section>
   </main>
   <div id="toast"></div><script src="/app.js"></script>

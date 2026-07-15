@@ -1,6 +1,7 @@
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const { WebSocketServer, WebSocket } = require("ws");
 
 const port = Number(process.env.PORT || 8787);
@@ -11,6 +12,9 @@ const mime = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; cha
 function decode(value = "") {
   return value.replace(/&quot;/g, '"').replace(/&#x27;|&#39;/g, "'").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
 }
+
+function hash(value) { return crypto.createHash("sha256").update(value).digest("hex"); }
+function readJson(req) { return new Promise((resolve, reject) => { let body=""; req.on("data",c=>{ body+=c; if(body.length>4096) reject(new Error("请求过大")); }); req.on("end",()=>{ try{ resolve(JSON.parse(body||"{}")); }catch{ reject(new Error("格式错误")); } }); }); }
 
 function meta(html, property) {
   const escaped = property.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -39,6 +43,15 @@ async function episodeInfo(rawUrl) {
 
 const server = http.createServer(async (req, res) => {
   const requestUrl = new URL(req.url, `http://${req.headers.host}`);
+  if (requestUrl.pathname === "/api/rooms" && req.method === "POST") {
+    try {
+      const body=await readJson(req), password=String(body.password||"").slice(0,24);
+      let room; do { room=crypto.randomBytes(3).toString("hex").toUpperCase(); } while(rooms.has(room));
+      const hostToken=crypto.randomBytes(24).toString("hex");
+      rooms.set(room,{members:new Set(),hostToken,passwordHash:password?hash(password):"",chats:[],createdAt:Date.now()});
+      res.writeHead(201,{"content-type":"application/json; charset=utf-8"}); return res.end(JSON.stringify({room,hostToken,hasPassword:!!password}));
+    } catch(error) { res.writeHead(400,{"content-type":"application/json; charset=utf-8"}); return res.end(JSON.stringify({error:error.message})); }
+  }
   if (requestUrl.pathname === "/api/episode") {
     try {
       const info = await episodeInfo(requestUrl.searchParams.get("url") || "");
@@ -66,15 +79,27 @@ const wss = new WebSocketServer({ server });
 wss.on("connection", (socket, req) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const room = (url.searchParams.get("room") || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 24);
-  if (!room) return socket.close(1008, "Room is required");
-  if (!rooms.has(room)) rooms.set(room, new Set());
-  const members = rooms.get(room);
+  if (!room || !rooms.has(room)) return socket.close(4004, "房间不存在或已过期");
+  const data=rooms.get(room), token=url.searchParams.get("token")||"", password=url.searchParams.get("password")||"";
+  const isHost=token&&token===data.hostToken;
+  if(!isHost&&data.passwordHash&&hash(password)!==data.passwordHash) return socket.close(4003,"房间密码错误");
+  const members = data.members;
   members.add(socket);
+  socket.send(JSON.stringify({type:"welcome",isHost,memberCount:members.size,chats:data.chats}));
+  for(const member of members) if(member.readyState===WebSocket.OPEN) member.send(JSON.stringify({type:"members",memberCount:members.size}));
   socket.on("message", raw => {
     if (raw.length > 8192) return;
-    for (const member of members) if (member.readyState === WebSocket.OPEN) member.send(raw.toString());
+    let message; try{message=JSON.parse(raw.toString())}catch{return}
+    if(message.type==="chat"){
+      const text=String(message.text||"").trim().slice(0,80); if(!text)return;
+      message={type:"chat",text,sender:String(message.sender||"").slice(0,80),name:String(message.name||"房友").slice(0,12),sentAt:Date.now()};
+      data.chats.push(message); if(data.chats.length>50)data.chats.shift();
+    }
+    const encoded=JSON.stringify(message); for (const member of members) if (member.readyState === WebSocket.OPEN) member.send(encoded);
   });
-  socket.on("close", () => { members.delete(socket); if (!members.size) rooms.delete(room); });
+  socket.on("close", () => { members.delete(socket); for(const member of members) if(member.readyState===WebSocket.OPEN) member.send(JSON.stringify({type:"members",memberCount:members.size})); });
 });
+
+setInterval(()=>{const now=Date.now();for(const [id,data] of rooms)if(!data.members.size&&now-data.createdAt>6*60*60*1000)rooms.delete(id)},30*60*1000).unref();
 
 server.listen(port, () => console.log(`Listen Together server: http://localhost:${port}`));

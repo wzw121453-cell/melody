@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#ff5a1f"><title>小宇宙一起听</title><link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main>
+    <header><span class="logo">◉</span><div><h1>小宇宙一起听</h1><p>隔着距离，也在同一秒听见</p></div></header>
+    <section id="setup" class="card">
+      <label>粘贴小宇宙单集分享链接</label>
+      <div class="input-row"><input id="episodeUrl" inputmode="url" placeholder="https://www.xiaoyuzhoufm.com/episode/…"><button id="load">载入</button></div>
+      <p class="hint">在小宇宙 App 打开单集 → 分享 → 复制链接</p>
+    </section>
+    <section id="playerCard" class="card player-card hidden">
+      <img id="cover" alt="播客封面"><div class="meta"><small id="podcast">小宇宙播客</small><h2 id="title">等待载入单集</h2></div>
+      <audio id="audio" controls playsinline preload="metadata"></audio>
+    </section>
+    <section class="card room-card">
+      <div class="room-line"><div><small>房间</small><strong id="roomCode">未加入</strong></div><span id="status">尚未连接</span></div>
+      <button id="create" class="primary">创建房间</button>
+      <button id="share" class="secondary" disabled>邀请朋友加入</button>
+      <p class="hint center">朋友点开链接即可加入，无需安装 App</p>
+    </section>
+  </main>
+  <div id="toast"></div><script src="/app.js"></script>
+</body></html>

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#ff5a1f"><title>小宇宙一起听</title><link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main>
+    <header><span class="logo">◉</span><div><h1>小宇宙一起听</h1><p>隔着距离，也在同一秒听见</p></div></header>
+    <section class="card account-card"><div><small>房主账户</small><strong id="accountName">未登录</strong><span id="planBadge">朋友加入始终免费</span></div><button id="accountButton">登录 / 注册</button></section>
+    <section class="card profile-card">
+      <div class="profile-avatar" id="myAvatar">我</div>
+      <div class="profile-main"><label>我的房间 ID</label><input id="myName" maxlength="12" placeholder="例如：小王同学"></div>
+      <button id="saveName">保存</button>
+    </section>
+    <section id="setup" class="card">
+      <label>粘贴小宇宙单集分享链接</label>
+      <div class="input-row"><input id="episodeUrl" inputmode="url" placeholder="https://www.xiaoyuzhoufm.com/episode/…"><button id="load">载入</button></div>
+      <p class="hint">在小宇宙 App 打开单集 → 分享 → 复制链接</p>
+    </section>
+    <section id="playerCard" class="card player-card hidden">
+      <div id="danmaku" class="danmaku"></div>
+      <img id="cover" alt="播客封面"><div class="meta"><small id="podcast">小宇宙播客</small><h2 id="title">等待载入单集</h2></div>
+      <audio id="audio" controls playsinline preload="metadata"></audio>
+      <div id="transcriptCard" class="episode-notes hidden">
+        <div class="section-head"><div><small>SHOW NOTES</small><h3>节目简介</h3></div><button id="toggleTranscript">展开全文</button></div>
+        <div id="transcript" class="transcript collapsed"></div>
+      </div>
+    </section>
+    <section class="card room-card">
+      <div class="room-line"><div><small>房间</small><strong id="roomCode">未加入</strong></div><span id="status">尚未连接</span></div>
+      <div id="hostSetup">
+        <label>房间密码（可选）</label><input id="roomPassword" maxlength="24" placeholder="设置后朋友需输入密码">
+        <button id="create" class="primary">创建房间</button>
+      </div>
+      <div id="joinSetup" class="hidden">
+        <label>房间密码</label><input id="joinPassword" maxlength="24" placeholder="向房主询问密码">
+        <button id="join" class="primary">加入房间</button>
+      </div>
+      <div id="shareBox" class="share-box hidden">
+        <label>邀请链接</label>
+        <div class="input-row"><input id="inviteUrl" readonly><button id="copy">复制</button></div>
+        <p class="wechat-tip">微信内也可以点右上角「···」→ 发送给朋友</p>
+      </div>
+      <button id="share" class="secondary" disabled>复制邀请链接</button>
+      <p class="hint center">朋友点开链接即可加入，无需安装 App</p>
+    </section>
+    <section id="plans" class="card plans-card hidden"><div class="section-head"><div><small>MEMBERSHIP</small><h3>升级房主会员</h3></div></div><div class="plans"><button data-plan="monthly"><b>月度会员</b><strong>¥9.9/月</strong><span>6人 · 无限时长</span></button><button data-plan="premium"><b>高级会员</b><strong>¥19.9/月</strong><span>20人 · 无限时长</span></button></div><p class="hint">朋友无需付费。订单系统已启用，微信支付将在配置商户号后开放。</p></section>
+    <section id="chatCard" class="card hidden">
+      <div class="chat-head"><strong>一起聊</strong><span id="memberCount">1 人在线</span></div>
+      <div id="members" class="members"></div>
+      <div id="messages" class="messages"></div>
+      <div class="quick-replies"><button>😂</button><button>👍</button><button>❤️</button><button>好听！</button><button>同感</button></div>
+      <div class="input-row"><input id="chatInput" maxlength="80" placeholder="发条弹幕…"><button id="chatSend">发送</button></div>
+    </section>
+  </main>
+  <div id="idModal" class="id-modal hidden"><div class="id-dialog"><div class="id-mark">◉</div><small>WELCOME TO THE ROOM</small><h2>先设置你的房间 ID</h2><p>这个名字会显示在成员列表、聊天和弹幕中。</p><input id="enterName" maxlength="12" placeholder="例如：小王同学" autofocus><button id="confirmName" class="primary">保存并进入</button></div></div>
+  <div id="accountModal" class="id-modal hidden"><div class="id-dialog"><div class="id-mark">♬</div><small>HOST ACCOUNT</small><h2 id="accountTitle">房主登录</h2><p>房主需要账户，受邀朋友仍可直接加入。</p><input id="accountEmail" type="email" placeholder="邮箱"><input id="accountPassword" type="password" minlength="8" placeholder="密码（至少8位）"><button id="accountSubmit" class="primary">登录</button><button id="accountSwitch" class="link-button">没有账户？免费注册</button><button id="accountClose" class="link-button">暂时关闭</button></div></div>
+  <div id="toast"></div><script src="/app.js"></script>
+</body></html>

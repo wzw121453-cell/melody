@@ -164,7 +164,7 @@ const server = http.createServer(async (req, res) => {
     return fs.createReadStream(vendorFile).pipe(res)
   }
   const requested = requestUrl.pathname === "/" ? "index.html" : requestUrl.pathname.slice(1);
-  const rootUiFiles = new Set(["index.html","app.js","styles.css","commerce.css","membership.html","membership.js","admin.html","admin.js","terms.html","privacy.html","refund.html"]);
+  const rootUiFiles = new Set(["index.html","app.js","styles.css","commerce.css","shop.html","membership.html","membership.js","admin.html","admin.js","terms.html","privacy.html","refund.html"]);
   const rootCandidate = path.join(__dirname, requested);
   const hasRootUi = fs.existsSync(path.join(__dirname,"index.html")) && fs.existsSync(path.join(__dirname,"app.js"));
   const baseDir = hasRootUi && rootUiFiles.has(requested) && fs.existsSync(rootCandidate) ? __dirname : publicDir;

@@ -109,8 +109,8 @@ const server = http.createServer(async (req, res) => {
       const body=await readJson(req), password=String(body.password||"").slice(0,24);
       let room; do { room=crypto.randomBytes(3).toString("hex").toUpperCase(); } while(rooms.has(room));
       const hostToken=crypto.randomBytes(24).toString("hex");
-      if(user.plan!=="monthly")return json(res,402,{error:"请先开通 ¥9.9 月度会员后再创建房间"});
-      const limits={members:5,minutes:Infinity};
+      if(!["monthly","premium"].includes(user.plan))return json(res,402,{error:"请先开通房主会员后再创建房间"});
+      const limits={members:user.plan==="premium"?20:6,minutes:Infinity};
       rooms.set(room,{members:new Set(),hostToken,ownerId:user.id,limits,passwordHash:password?hash(password):"",chats:[],state:null,createdAt:Date.now()});
       res.writeHead(201,{"content-type":"application/json; charset=utf-8"}); return res.end(JSON.stringify({room,hostToken,hasPassword:!!password}));
     } catch(error) { res.writeHead(400,{"content-type":"application/json; charset=utf-8"}); return res.end(JSON.stringify({error:error.message})); }
@@ -159,7 +159,7 @@ wss.on("connection", (socket, req) => {
   }
   members.add(socket);
   const presence=()=>[...members].map(member=>member.user);
-  socket.send(JSON.stringify({type:"welcome",isHost,memberCount:members.size,members:presence(),chats:data.chats,state:data.state}));
+  socket.send(JSON.stringify({type:"welcome",isHost,memberCount:members.size,maxMembers:data.limits.members,members:presence(),chats:data.chats,state:data.state}));
   for(const member of members) if(member.readyState===WebSocket.OPEN) member.send(JSON.stringify({type:"members",memberCount:members.size,members:presence()}));
   socket.on("message", raw => {
     if (raw.length > 8192) return;

@@ -2,12 +2,13 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <style>.plans{display:grid!important;grid-template-columns:1fr 1fr!important;gap:14px}.plan-option{display:grid!important;gap:9px!important;padding:20px!important;text-align:left!important;border:1px solid #ffc7ad!important;border-radius:20px!important;background:#fff9f5!important;color:#211914!important}.plan-option b{font-size:18px}.plan-option strong{color:#e85925!important;font-size:20px}.plan-option span{color:#977d70!important;font-size:13px}@media(max-width:430px){.plans{grid-template-columns:1fr!important}}</style>
   <meta name="theme-color" content="#ff5a1f"><title>小宇宙一起听</title><link rel="stylesheet" href="/styles.css">
 </head>
 <body>
   <main>
     <header><span class="logo">♫</span><div><span class="eyebrow">PODCAST PARTY</span><h1>一起听点有意思的</h1><p>同一段声音，同一秒心动</p></div></header>
-    <section class="card account-card"><div><small>平台会员</small><strong id="accountName">未登录</strong><span id="planBadge">¥9.9/月 · 房间最多5人</span></div><button id="accountButton">登录 / 注册</button></section>
+    <section class="card account-card"><div><small>平台会员</small><strong id="accountName">未登录</strong><span id="planBadge">月度6人 / 高级20人</span></div><button id="accountButton">登录 / 注册</button></section>
     <section class="card profile-card">
       <div class="profile-avatar" id="myAvatar">我</div>
       <div class="profile-main"><label><i>1</i> 我的昵称</label><input id="myName" maxlength="12" placeholder="朋友会看到这个名字"></div>
@@ -29,7 +30,7 @@
     </section>
     <section class="card room-card">
       <div class="room-line"><div><small>房间</small><strong id="roomCode">未加入</strong></div><span id="status">尚未连接</span></div>
-      <div id="hostSetup"><div class="step-title"><i>3</i><div><b>开一个房间</b><span>会员可创建，最多邀请4位朋友</span></div></div>
+      <div id="hostSetup"><div class="step-title"><i>3</i><div><b>开一个房间</b><span>月度会员最多6人，高级会员最多20人</span></div></div>
         <label>房间密码（可选）</label><input id="roomPassword" maxlength="24" placeholder="设置后朋友需输入密码">
         <button id="create" class="primary">创建房间</button>
       </div>
@@ -45,7 +46,7 @@
       <button id="share" class="secondary" disabled>复制邀请链接</button>
       <p class="hint center">朋友点开链接即可加入，无需安装 App</p>
     </section>
-    <section id="plans" class="card plans-card hidden"><div class="membership-hero"><span>PRO</span><div><small>一起听平台会员</small><h3><b>¥9.9</b> / 月</h3><p>创建不限时一起听房间 · 每房最多5人</p></div></div><button class="membership-cta" data-plan="monthly">立即开通月度会员</button><p class="hint center">费用支付给本平台；受邀朋友无需另外付费</p></section>
+    <section id="plans" class="card plans-card hidden"><span class="eyebrow">MEMBERSHIP</span><h2>升级房主会员</h2><div class="plans"><button class="plan-option" data-plan="monthly"><b>月度会员</b><strong>¥9.9/月</strong><span>6人 · 无限时长</span></button><button class="plan-option" data-plan="premium"><b>高级会员</b><strong>¥19.9/月</strong><span>20人 · 无限时长</span></button></div><p class="hint">朋友无需付费。订单系统已启用，微信支付将在配置商户号后开放。</p></section>
     <section id="chatCard" class="card hidden">
       <div class="chat-head"><strong>一起聊</strong><span id="memberCount">1 人在线</span></div>
       <div id="members" class="members"></div>
@@ -55,6 +56,6 @@
     </section>
   </main>
   <div id="idModal" class="id-modal hidden"><div class="id-dialog"><div class="id-mark">◉</div><small>WELCOME TO THE ROOM</small><h2>先设置你的房间 ID</h2><p>这个名字会显示在成员列表、聊天和弹幕中。</p><input id="enterName" maxlength="12" placeholder="例如：小王同学" autofocus><button id="confirmName" class="primary">保存并进入</button></div></div>
-  <div id="accountModal" class="id-modal hidden"><div class="id-dialog"><div class="id-mark">♬</div><small>MEMBER ACCOUNT</small><h2 id="accountTitle">会员登录</h2><p>开通会员即可创建最多5人的一起听房间。</p><input id="accountEmail" type="email" placeholder="邮箱"><input id="accountPassword" type="password" minlength="8" placeholder="密码（至少8位）"><button id="accountSubmit" class="primary">登录</button><button id="accountSwitch" class="link-button">没有账户？免费注册</button><button id="accountClose" class="link-button">暂时关闭</button></div></div>
+  <div id="accountModal" class="id-modal hidden"><div class="id-dialog"><div class="id-mark">♬</div><small>MEMBER ACCOUNT</small><h2 id="accountTitle">会员登录</h2><p>月度会员最多6人，高级会员最多20人。</p><input id="accountPhone" inputmode="numeric" maxlength="11" placeholder="手机号"><input id="accountPassword" type="password" minlength="8" placeholder="密码（至少8位）"><button id="accountSubmit" class="primary">登录</button><button id="accountSwitch" class="link-button">没有账户？免费注册</button><button id="accountClose" class="link-button">暂时关闭</button></div></div>
   <div id="toast"></div><script src="/app.js"></script>
 </body></html>

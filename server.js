@@ -19,6 +19,8 @@ function hash(value) { return crypto.createHash("sha256").update(value).digest("
 function json(res,status,data){res.writeHead(status,{"content-type":"application/json; charset=utf-8","cache-control":"no-store"});res.end(JSON.stringify(data))}
 function currentUser(req){return store.userByToken((req.headers.authorization||"").replace(/^Bearer\s+/i,""))}
 function readJson(req) { return new Promise((resolve, reject) => { let body="",failed=false; req.on("data",c=>{ if(failed)return;body+=c;if(body.length>3000000){failed=true;reject(new Error("请求过大"));req.destroy()} }); req.on("end",()=>{if(failed)return;try{resolve(JSON.parse(body||"{}"))}catch{reject(new Error("格式错误"))}}); }); }
+function roomAccess(data,credentials={}){const isHost=!!credentials.token&&credentials.token===data.hostToken;if(data.passwordHash&&!isHost&&hash(String(credentials.password||""))!==data.passwordHash)throw new Error("房间密码错误");return isHost}
+function pollPresence(data){if(!data.pollMembers)data.pollMembers=new Map();const cutoff=Date.now()-30000;for(const[id,member]of data.pollMembers)if(member.lastSeen<cutoff)data.pollMembers.delete(id);const all=[...data.members].map(member=>member.user);for(const member of data.pollMembers.values())if(!all.some(item=>item.userId===member.user.userId))all.push(member.user);return all}
 
 function meta(html, property) {
   const escaped = property.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -142,6 +144,9 @@ const server = http.createServer(async (req, res) => {
       rooms.set(room,{members:new Set(),hostToken,ownerId:user.id,limits,passwordHash:password?hash(password):"",chats:[],state:null,createdAt:Date.now()});
       res.writeHead(201,{"content-type":"application/json; charset=utf-8"}); return res.end(JSON.stringify({room,hostToken,hasPassword:!!password}));
     } catch(error) { res.writeHead(400,{"content-type":"application/json; charset=utf-8"}); return res.end(JSON.stringify({error:error.message})); }
+  }
+  if(/^\/api\/rooms\/[A-Za-z0-9_-]+\/sync$/.test(requestUrl.pathname)&&req.method==="POST"){
+    try{const room=requestUrl.pathname.split("/")[3],data=rooms.get(room);if(!data)return json(res,404,{error:"房间不存在或已过期"});const body=await readJson(req),client=String(body.client||"").slice(0,80),name=String(body.name||"房友").trim().slice(0,16)||"房友";if(!client)throw new Error("客户端标识无效");const isHost=roomAccess(data,body.credentials||{});if(!data.pollMembers)data.pollMembers=new Map();pollPresence(data);if(!data.pollMembers.has(client)&&data.members.size+data.pollMembers.size>=data.limits.members)return json(res,409,{error:`房间已满，最多${data.limits.members}人`});data.pollMembers.set(client,{user:{userId:client,name,isHost},lastSeen:Date.now()});const message=body.message;if(message&&message.type==="chat"){const text=String(message.text||"").trim().slice(0,160);if(text){data.chats.push({type:"chat",id:crypto.randomUUID(),text,sender:client,name,isHost,sentAt:Date.now()});if(data.chats.length>50)data.chats.shift()}}else if(message&&message.type==="state")data.state={type:"state",state:message.state,sender:client,sentAt:Date.now()};const members=pollPresence(data);return json(res,200,{ok:true,memberCount:members.length,maxMembers:data.limits.members,members,chats:data.chats,state:data.state})}catch(error){const status=error.message==="房间密码错误"?403:400;return json(res,status,{error:error.message})}
   }
   if (requestUrl.pathname === "/api/episode") {
     try {

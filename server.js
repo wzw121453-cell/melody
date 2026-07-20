@@ -97,6 +97,18 @@ const server = http.createServer(async (req, res) => {
     const body=await readJson(req).catch(()=>({})),result=store.login(body.email||"",body.password||"");return result?json(res,200,result):json(res,401,{error:"邮箱或密码错误"})
   }
   if(requestUrl.pathname==="/api/me"){const user=currentUser(req);return user?json(res,200,{user:store.safeUser(user)}):json(res,401,{error:"请先登录"})}
+  if(requestUrl.pathname==="/api/redeem"&&req.method==="POST"){
+    try{const user=currentUser(req);if(!user)return json(res,401,{error:"请先登录手机号账户"});return json(res,200,store.redeemCode(user.id,(await readJson(req)).code))}catch(error){return json(res,400,{error:error.message})}
+  }
+  if(requestUrl.pathname==="/api/admin/redemptions"&&req.method==="GET"){
+    try{const user=currentUser(req);return json(res,200,{redemptions:store.listRedemptions(user)})}catch(error){return json(res,403,{error:error.message})}
+  }
+  if(requestUrl.pathname==="/api/admin/redemptions"&&req.method==="POST"){
+    try{const user=currentUser(req);return json(res,201,store.createRedemption(user,await readJson(req)))}catch(error){return json(res,400,{error:error.message})}
+  }
+  if(/^\/api\/admin\/redemptions\/[A-Z0-9]+\/revoke$/.test(requestUrl.pathname)&&req.method==="POST"){
+    try{const user=currentUser(req),id=requestUrl.pathname.split("/")[4];return json(res,200,{redemption:store.revokeRedemption(user,id)})}catch(error){return json(res,400,{error:error.message})}
+  }
   if(requestUrl.pathname==="/api/orders"&&req.method==="POST"){
     try{const user=currentUser(req);if(!user)return json(res,401,{error:"请先登录"});const order=store.createOrder(user.id,(await readJson(req)).plan);return json(res,201,{order,payment:{status:"pending",message:"订单已创建，接入微信商户号后即可调起支付"}})}catch(error){return json(res,400,{error:error.message})}
   }
@@ -115,7 +127,7 @@ const server = http.createServer(async (req, res) => {
   if(/^\/api\/admin\/orders\/[A-Z0-9]+\/review$/.test(requestUrl.pathname)&&req.method==="POST"){
     try{const user=currentUser(req);if(!user||!store.isAdmin(user))return json(res,403,{error:"仅管理员可操作"});const body=await readJson(req),orderId=requestUrl.pathname.split("/")[4];return json(res,200,{order:store.reviewOrder(user,orderId,body.action,body.note)})}catch(error){return json(res,400,{error:error.message})}
   }
-  if(requestUrl.pathname==="/api/payment-config"&&req.method==="GET")return json(res,200,{qrUrl:process.env.PAYMENT_QR_URL||"",payeeName:process.env.PAYEE_NAME||"平台创建者",notice:"付款时请备注订单号，随后上传付款截图"})
+  if(requestUrl.pathname==="/api/payment-config"&&req.method==="GET")return json(res,200,{qrUrl:process.env.PAYMENT_QR_URL||"",payeeName:process.env.PAYEE_NAME||"平台创建者",notice:"付款时请备注订单号，付款后填写微信昵称或手机号后四位"})
   if(requestUrl.pathname==="/api/payments/webhook"&&req.method==="POST"){
     if(!process.env.PAYMENT_WEBHOOK_SECRET||req.headers["x-payment-secret"]!==process.env.PAYMENT_WEBHOOK_SECRET)return json(res,403,{error:"拒绝访问"});try{return json(res,200,{ok:true,order:store.activateOrder((await readJson(req)).orderId)})}catch(error){return json(res,400,{error:error.message})}
   }

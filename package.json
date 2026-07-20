@@ -3,5 +3,5 @@
   "private": true,
   "version": "0.1.0",
   "scripts": { "start": "node server.js" },
-  "dependencies": { "ws": "^8.18.0" }
+  "dependencies": { "tesseract.js": "^6.0.1", "ws": "^8.18.0" }
 }

@@ -157,6 +157,12 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(200, { "content-type": "application/json; charset=utf-8" });
     return res.end(JSON.stringify({ ok: true, rooms: rooms.size }));
   }
+  if(requestUrl.pathname==="/vendor/tesseract.min.js"){
+    const vendorFile=path.join(__dirname,"node_modules","tesseract.js","dist","tesseract.min.js");
+    if(!fs.existsSync(vendorFile)){res.writeHead(404);return res.end("OCR component unavailable")}
+    res.writeHead(200,{"content-type":"application/javascript; charset=utf-8","cache-control":"public, max-age=604800"});
+    return fs.createReadStream(vendorFile).pipe(res)
+  }
   const requested = requestUrl.pathname === "/" ? "index.html" : requestUrl.pathname.slice(1);
   const rootUiFiles = new Set(["index.html","app.js","styles.css","commerce.css","membership.html","membership.js","admin.html","admin.js","terms.html","privacy.html","refund.html"]);
   const rootCandidate = path.join(__dirname, requested);

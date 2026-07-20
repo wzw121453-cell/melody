@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const { WebSocketServer, WebSocket } = require("ws");
+const store = require("./store");
 
 const port = Number(process.env.PORT || 8787);
 const rooms = new Map();
@@ -14,6 +15,8 @@ function decode(value = "") {
 }
 
 function hash(value) { return crypto.createHash("sha256").update(value).digest("hex"); }
+function json(res,status,data){res.writeHead(status,{"content-type":"application/json; charset=utf-8","cache-control":"no-store"});res.end(JSON.stringify(data))}
+function currentUser(req){return store.userByToken((req.headers.authorization||"").replace(/^Bearer\s+/i,""))}
 function readJson(req) { return new Promise((resolve, reject) => { let body=""; req.on("data",c=>{ body+=c; if(body.length>4096) reject(new Error("请求过大")); }); req.on("end",()=>{ try{ resolve(JSON.parse(body||"{}")); }catch{ reject(new Error("格式错误")); } }); }); }
 
 function meta(html, property) {
@@ -77,12 +80,27 @@ async function episodeInfo(rawUrl) {
 
 const server = http.createServer(async (req, res) => {
   const requestUrl = new URL(req.url, `http://${req.headers.host}`);
+  if(requestUrl.pathname==="/api/auth/register"&&req.method==="POST"){
+    try{const body=await readJson(req);if(!/^\S+@\S+\.\S+$/.test(body.email||""))throw new Error("请输入有效邮箱");if(String(body.password||"").length<8)throw new Error("密码至少需要8位");store.createUser(body);return json(res,201,store.login(body.email,body.password))}catch(error){return json(res,400,{error:error.message})}
+  }
+  if(requestUrl.pathname==="/api/auth/login"&&req.method==="POST"){
+    const body=await readJson(req).catch(()=>({})),result=store.login(body.email||"",body.password||"");return result?json(res,200,result):json(res,401,{error:"邮箱或密码错误"})
+  }
+  if(requestUrl.pathname==="/api/me"){const user=currentUser(req);return user?json(res,200,{user:store.safeUser(user)}):json(res,401,{error:"请先登录"})}
+  if(requestUrl.pathname==="/api/orders"&&req.method==="POST"){
+    try{const user=currentUser(req);if(!user)return json(res,401,{error:"请先登录"});const order=store.createOrder(user.id,(await readJson(req)).plan);return json(res,201,{order,payment:{status:"pending",message:"订单已创建，接入微信商户号后即可调起支付"}})}catch(error){return json(res,400,{error:error.message})}
+  }
+  if(requestUrl.pathname==="/api/payments/webhook"&&req.method==="POST"){
+    if(!process.env.PAYMENT_WEBHOOK_SECRET||req.headers["x-payment-secret"]!==process.env.PAYMENT_WEBHOOK_SECRET)return json(res,403,{error:"拒绝访问"});try{return json(res,200,{ok:true,order:store.activateOrder((await readJson(req)).orderId)})}catch(error){return json(res,400,{error:error.message})}
+  }
   if (requestUrl.pathname === "/api/rooms" && req.method === "POST") {
     try {
+      const user=currentUser(req);if(!user)return json(res,401,{error:"房主需要先登录，朋友加入无需登录"});
       const body=await readJson(req), password=String(body.password||"").slice(0,24);
       let room; do { room=crypto.randomBytes(3).toString("hex").toUpperCase(); } while(rooms.has(room));
       const hostToken=crypto.randomBytes(24).toString("hex");
-      rooms.set(room,{members:new Set(),hostToken,passwordHash:password?hash(password):"",chats:[],state:null,createdAt:Date.now()});
+      const limits=user.plan==="premium"?{members:20,minutes:Infinity}:user.plan==="monthly"?{members:6,minutes:Infinity}:{members:2,minutes:60};
+      rooms.set(room,{members:new Set(),hostToken,ownerId:user.id,limits,passwordHash:password?hash(password):"",chats:[],state:null,createdAt:Date.now()});
       res.writeHead(201,{"content-type":"application/json; charset=utf-8"}); return res.end(JSON.stringify({room,hostToken,hasPassword:!!password}));
     } catch(error) { res.writeHead(400,{"content-type":"application/json; charset=utf-8"}); return res.end(JSON.stringify({error:error.message})); }
   }
@@ -118,6 +136,7 @@ wss.on("connection", (socket, req) => {
   const isHost=token&&token===data.hostToken;
   const userId=(url.searchParams.get("client")||"").slice(0,80), name=(url.searchParams.get("name")||"房友").trim().slice(0,12)||"房友";
   if(!isHost&&data.passwordHash&&hash(password)!==data.passwordHash) return socket.close(4003,"房间密码错误");
+  if(!isHost&&data.members.size>=data.limits.members)return socket.close(4005,"房间人数已满");
   const members = data.members;
   socket.user={userId,name,isHost};
   for(const member of members){

@@ -99,7 +99,8 @@ const server = http.createServer(async (req, res) => {
       const body=await readJson(req), password=String(body.password||"").slice(0,24);
       let room; do { room=crypto.randomBytes(3).toString("hex").toUpperCase(); } while(rooms.has(room));
       const hostToken=crypto.randomBytes(24).toString("hex");
-      const limits=user.plan==="premium"?{members:20,minutes:Infinity}:user.plan==="monthly"?{members:6,minutes:Infinity}:{members:2,minutes:60};
+      if(user.plan!=="monthly")return json(res,402,{error:"请先开通 ¥9.9 月度会员后再创建房间"});
+      const limits={members:5,minutes:Infinity};
       rooms.set(room,{members:new Set(),hostToken,ownerId:user.id,limits,passwordHash:password?hash(password):"",chats:[],state:null,createdAt:Date.now()});
       res.writeHead(201,{"content-type":"application/json; charset=utf-8"}); return res.end(JSON.stringify({room,hostToken,hasPassword:!!password}));
     } catch(error) { res.writeHead(400,{"content-type":"application/json; charset=utf-8"}); return res.end(JSON.stringify({error:error.message})); }

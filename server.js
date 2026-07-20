@@ -18,7 +18,7 @@ function decode(value = "") {
 function hash(value) { return crypto.createHash("sha256").update(value).digest("hex"); }
 function json(res,status,data){res.writeHead(status,{"content-type":"application/json; charset=utf-8","cache-control":"no-store"});res.end(JSON.stringify(data))}
 function currentUser(req){return store.userByToken((req.headers.authorization||"").replace(/^Bearer\s+/i,""))}
-function readJson(req) { return new Promise((resolve, reject) => { let body=""; req.on("data",c=>{ body+=c; if(body.length>4096) reject(new Error("请求过大")); }); req.on("end",()=>{ try{ resolve(JSON.parse(body||"{}")); }catch{ reject(new Error("格式错误")); } }); }); }
+function readJson(req) { return new Promise((resolve, reject) => { let body="",failed=false; req.on("data",c=>{ if(failed)return;body+=c;if(body.length>3000000){failed=true;reject(new Error("请求过大"));req.destroy()} }); req.on("end",()=>{if(failed)return;try{resolve(JSON.parse(body||"{}"))}catch{reject(new Error("格式错误"))}}); }); }
 
 function meta(html, property) {
   const escaped = property.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -100,6 +100,22 @@ const server = http.createServer(async (req, res) => {
   if(requestUrl.pathname==="/api/orders"&&req.method==="POST"){
     try{const user=currentUser(req);if(!user)return json(res,401,{error:"请先登录"});const order=store.createOrder(user.id,(await readJson(req)).plan);return json(res,201,{order,payment:{status:"pending",message:"订单已创建，接入微信商户号后即可调起支付"}})}catch(error){return json(res,400,{error:error.message})}
   }
+  if(requestUrl.pathname==="/api/orders"&&req.method==="GET"){
+    const user=currentUser(req);if(!user)return json(res,401,{error:"请先登录"});return json(res,200,{orders:store.listOrdersForUser(user.id)})
+  }
+  if(/^\/api\/orders\/[A-Z0-9]+\/proof$/.test(requestUrl.pathname)&&req.method==="POST"){
+    try{const user=currentUser(req);if(!user)return json(res,401,{error:"请先登录"});const orderId=requestUrl.pathname.split("/")[3];return json(res,200,{order:store.submitProof(user.id,orderId,await readJson(req))})}catch(error){return json(res,400,{error:error.message})}
+  }
+  if(/^\/api\/orders\/[A-Z0-9]+\/proof$/.test(requestUrl.pathname)&&req.method==="GET"){
+    const user=currentUser(req);if(!user)return json(res,401,{error:"请先登录"});const proof=store.getProof(user,requestUrl.pathname.split("/")[3]);if(!proof)return json(res,404,{error:"付款凭证不存在"});return json(res,200,{proof})
+  }
+  if(requestUrl.pathname==="/api/admin/orders"&&req.method==="GET"){
+    const user=currentUser(req);if(!user||!store.isAdmin(user))return json(res,403,{error:"仅管理员可访问"});return json(res,200,{orders:store.listOrdersAdmin()})
+  }
+  if(/^\/api\/admin\/orders\/[A-Z0-9]+\/review$/.test(requestUrl.pathname)&&req.method==="POST"){
+    try{const user=currentUser(req);if(!user||!store.isAdmin(user))return json(res,403,{error:"仅管理员可操作"});const body=await readJson(req),orderId=requestUrl.pathname.split("/")[4];return json(res,200,{order:store.reviewOrder(user,orderId,body.action,body.note)})}catch(error){return json(res,400,{error:error.message})}
+  }
+  if(requestUrl.pathname==="/api/payment-config"&&req.method==="GET")return json(res,200,{qrUrl:process.env.PAYMENT_QR_URL||"",payeeName:process.env.PAYEE_NAME||"平台创建者",notice:"付款时请备注订单号，随后上传付款截图"})
   if(requestUrl.pathname==="/api/payments/webhook"&&req.method==="POST"){
     if(!process.env.PAYMENT_WEBHOOK_SECRET||req.headers["x-payment-secret"]!==process.env.PAYMENT_WEBHOOK_SECRET)return json(res,403,{error:"拒绝访问"});try{return json(res,200,{ok:true,order:store.activateOrder((await readJson(req)).orderId)})}catch(error){return json(res,400,{error:error.message})}
   }
@@ -130,7 +146,7 @@ const server = http.createServer(async (req, res) => {
     return res.end(JSON.stringify({ ok: true, rooms: rooms.size }));
   }
   const requested = requestUrl.pathname === "/" ? "index.html" : requestUrl.pathname.slice(1);
-  const rootUiFiles = new Set(["index.html","app.js","styles.css"]);
+  const rootUiFiles = new Set(["index.html","app.js","styles.css","commerce.css","membership.html","membership.js","admin.html","admin.js","terms.html","privacy.html","refund.html"]);
   const rootCandidate = path.join(__dirname, requested);
   const hasRootUi = fs.existsSync(path.join(__dirname,"index.html")) && fs.existsSync(path.join(__dirname,"app.js"));
   const baseDir = hasRootUi && rootUiFiles.has(requested) && fs.existsSync(rootCandidate) ? __dirname : publicDir;

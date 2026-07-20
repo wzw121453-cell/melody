@@ -119,8 +119,12 @@ const server = http.createServer(async (req, res) => {
     return res.end(JSON.stringify({ ok: true, rooms: rooms.size }));
   }
   const requested = requestUrl.pathname === "/" ? "index.html" : requestUrl.pathname.slice(1);
-  const filePath = path.normalize(path.join(publicDir, requested));
-  if (!filePath.startsWith(publicDir) || !fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
+  const rootUiFiles = new Set(["index.html","app.js","styles.css"]);
+  const rootCandidate = path.join(__dirname, requested);
+  const hasRootUi = fs.existsSync(path.join(__dirname,"index.html")) && fs.existsSync(path.join(__dirname,"app.js"));
+  const baseDir = hasRootUi && rootUiFiles.has(requested) && fs.existsSync(rootCandidate) ? __dirname : publicDir;
+  const filePath = path.normalize(path.join(baseDir, requested));
+  if (!filePath.startsWith(baseDir) || !fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
     res.writeHead(404); return res.end("Not found");
   }
   res.writeHead(200, { "content-type": mime[path.extname(filePath)] || "application/octet-stream" });

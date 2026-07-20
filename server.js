@@ -7,6 +7,7 @@ const store = require("./store");
 
 const port = Number(process.env.PORT || 8787);
 const rooms = new Map();
+const smsCodes = new Map();
 const publicDir = path.join(__dirname, "public");
 const mime = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".png": "image/png", ".svg": "image/svg+xml" };
 
@@ -80,6 +81,15 @@ async function episodeInfo(rawUrl) {
 
 const server = http.createServer(async (req, res) => {
   const requestUrl = new URL(req.url, `http://${req.headers.host}`);
+  if(requestUrl.pathname==="/api/auth/sms-code"&&req.method==="POST"){
+    try{const body=await readJson(req),phone=String(body.phone||"").replace(/\D/g,"");if(!/^1\d{10}$/.test(phone))throw new Error("请输入正确的11位手机号");const recent=smsCodes.get(phone);if(recent&&Date.now()-recent.sentAt<60000)throw new Error("请60秒后再获取验证码");if(process.env.SMS_DEBUG!=="true")return json(res,503,{error:"短信服务尚未配置，请先使用密码登录"});const code=String(crypto.randomInt(100000,1000000));smsCodes.set(phone,{code,expiresAt:Date.now()+5*60000,sentAt:Date.now()});return json(res,200,{ok:true,debugCode:code,message:"测试验证码已生成"})}catch(error){return json(res,400,{error:error.message})}
+  }
+  if(requestUrl.pathname==="/api/auth/phone-register"&&req.method==="POST"){
+    try{const body=await readJson(req);const user=store.createPhoneUser(body);return json(res,201,store.createSession(store.userByPhone(user.phone)))}catch(error){return json(res,400,{error:error.message})}
+  }
+  if(requestUrl.pathname==="/api/auth/phone-login"&&req.method==="POST"){
+    try{const body=await readJson(req),phone=String(body.phone||"").replace(/\D/g,"");if(body.code){const saved=smsCodes.get(phone);if(!saved||saved.expiresAt<Date.now()||saved.code!==String(body.code))return json(res,401,{error:"验证码错误或已过期"});smsCodes.delete(phone);const user=store.userByPhone(phone);if(!user)return json(res,404,{error:"该手机号尚未注册，请先设置密码注册"});return json(res,200,store.createSession(user))}const result=store.loginPhone(phone,body.password||"");return result?json(res,200,result):json(res,401,{error:"手机号或密码错误"})}catch(error){return json(res,400,{error:error.message})}
+  }
   if(requestUrl.pathname==="/api/auth/register"&&req.method==="POST"){
     try{const body=await readJson(req);if(!/^\S+@\S+\.\S+$/.test(body.email||""))throw new Error("请输入有效邮箱");if(String(body.password||"").length<8)throw new Error("密码至少需要8位");store.createUser(body);return json(res,201,store.login(body.email,body.password))}catch(error){return json(res,400,{error:error.message})}
   }
